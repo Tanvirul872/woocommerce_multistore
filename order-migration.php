@@ -6,17 +6,27 @@ Version: 1.0
 Author: Your Name
 */
 
+
+// include files 
 include('database.php');
+
+
+
 
 require __DIR__ . '/vendor/autoload.php';
 use Automattic\WooCommerce\Client;
-// Load WordPress and WooCommerce functions
+
+
+
+// Load WordPress and WooCommerce functions  
 require_once(dirname(__FILE__) . '/../../../wp-load.php');
 require_once(ABSPATH . 'wp-admin/includes/file.php');
 require_once(ABSPATH . 'wp-admin/includes/image.php');
 require_once(ABSPATH . 'wp-admin/includes/media.php');
 
 
+
+// enqueue css and js files 
 add_action('admin_enqueue_scripts','plugin_css_jsscripts');
 function plugin_css_jsscripts() {
     // CSS
@@ -42,11 +52,6 @@ echo '<div style="margin-left:450px">' ;
 
 
 // test data start 
-
-
-
-
-
 
 $source_orders = array();
 $woocommerce = new Client(
@@ -83,9 +88,8 @@ echo '</div>' ;
 
 
 
-// Register activation hook
-register_activation_hook( __FILE__, 'create_woo_migrte_orders_table' );
 // Function to create the settings table woo_migrte_orders
+register_activation_hook( __FILE__, 'create_woo_migrte_orders_table' );
 function create_woo_migrte_orders_table() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'woo_migrte_orders';
@@ -106,13 +110,8 @@ function create_woo_migrte_orders_table() {
 
 
 
+// Make  active members ajax function
 
-
-
-
-// Hook the migration function to a specific action
-// add_action('wp_loaded', 'migration_trigger');
-// Make  active members
 add_action( 'wp_ajax_migration_trigger', 'migration_trigger' );
 add_action( 'wp_ajax_nopriv_migration_trigger', 'migration_trigger' );
 
@@ -135,7 +134,6 @@ function migrate_orders() {
     // Source website URL (http://localhost/ecom_4/)
     $source_site_url = 'http://localhost/ecom_4/';
     
-
     // Fetch orders from the source website (You need to implement this)
     $source_orders = get_source_orders($source_site_url);
 
@@ -194,35 +192,12 @@ function get_source_orders($source_site_url) {
                     'created_via'   => null,
                     'cart_hash'     => null,
                     'order_id'      => 0,
-                    // 'billing'       => array(
-                    //     'address_1' => 'Shipping Address 1',
-                    //     'address_2' => 'Shipping Address 2',
-                    //     'city' => 'Shipping city',
-                    //     'company' => 'Shipping  Company',
-                    //     'country' => 'Shipping  Country',
-                    //     'email' => 'shipping@myemail.com',
-                    //     'first_name' => 'Jane',
-                    //     'last_name' => 'Doe',
-                    //     'postcode' => '132',
-                    //     'state' => 'Shipping State',
-                    // ),
-                    // 'shipping' => array(
-                    //     'first_name' => $source_order->shipping->first_name,
-                    //     'last_name' => $source_order->shipping->last_name,
-                    //     'address_1' => $source_order->shipping->address_1,
-                    //     'address_2' => $source_order->shipping->address_2,
-                    //     'city' => $source_order->shipping->city,
-                    //     'state' => $source_order->shipping->state,
-                    //     'postcode' => $source_order->shipping->postcode,
-                    //     'country' => $source_order->shipping->country,
-                    // ),
                 );
         
                 $new_order = wc_create_order($order_data);
                 if (is_a($new_order, 'WC_Order')) {
 
                     foreach ($source_order->line_items as $line_item) {
-                        $image_url = $line_item->image->src; // Get the image URL from the line item data
 
                         $args = array(
                             'name'         => $line_item->name,
@@ -233,20 +208,14 @@ function get_source_orders($source_site_url) {
                             'total'        => $line_item->total,
                             'quantity'     => $line_item->quantity,
                             'product_id'   => $line_item->product_id,
-                            'image_url'     => $image_url,
                           );
                          
-                        $sku = '123';
+                        $sku = '123'; //for test purpose 
                         $product_id = wc_get_product_id_by_sku( $sku );
                         $product = wc_get_product($product_id);
                         $new_order->add_product($product, $line_item->quantity);      
-                        // $new_order->add_product(  $product , 1, $args );
-                        // if ($product) {
-                        //     $new_order->add_product($product, $line_item->quantity, $args);
-                        // }
-                        
-                $shipping_address = array(
-
+                     
+                $shipping_address = array(             
                     'first_name' => $source_order->shipping->first_name,
                     'last_name' => $source_order->shipping->last_name,
                     'address_1' => $source_order->shipping->address_1,
@@ -258,7 +227,6 @@ function get_source_orders($source_site_url) {
                     'company'    => $source_order->shipping->company,
                     'email'      => $source_order->shipping->email,
                     'phone'      => $source_order->shipping->phone,
-                 
                 );
 
 
@@ -282,55 +250,16 @@ function get_source_orders($source_site_url) {
                 $new_order->set_address( $shipping_address, 'shipping' );
                         
                     }
-        
-// Inside the loop that displays line item details
-echo '<td class="product-thumbnail">';
-echo '<img src="' . esc_url($args['image_url']) . '" alt="' . esc_attr__('Product Image', 'woocommerce') . '" width="100">';
-echo '</td>';
-
-
+    
                     $new_order->calculate_totals();
                     // $new_order->save();
                 }
-
-
-                // $address = array(
-                //     'first_name' => 'Fresher',
-                //     'last_name'  => 'StAcK OvErFloW',
-                //     'company'    => 'stackoverflow',
-                //     'email'      => 'test@test.com',
-                //     'phone'      => '777-777-777-777',
-                //     'address_1'  => '31 Main Street',
-                //     'address_2'  => '', 
-                //     'city'       => 'Chennai',
-                //     'state'      => 'TN',
-                //     'postcode'   => '12345',
-                //     'country'    => 'IN'
-                // );
         
-                // $order = wc_create_order();
-                // $order->add_product( get_product( '12' ), 2 ); //(get_product with id and next is for quantity)
-                // $order->set_address( $address, 'billing' );
-                // $order->set_address( $address, 'shipping' );
-
-                // $order->calculate_totals();
-        
-
-
-                
-
-             
             }
-// add order end 
-
+            // add order end 
             // $source_orders[] = $order;
         } 
 
-
-
-            // You might need to transform and format the order data as needed
-            // before adding it to the source_orders array
-           
         }
     }
     return $source_orders;
@@ -402,7 +331,11 @@ function migration_page() {
 
 
 
-// extra codes 
+
+
+
+
+// extra codes starts
 
 
 
@@ -433,3 +366,8 @@ function adjust_shop_order_column_order($columns) {
     return $new_columns;
 }
 add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
+
+
+
+
+// extra codes end
