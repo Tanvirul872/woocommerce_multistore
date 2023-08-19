@@ -1,0 +1,22 @@
+ 
+  .btn-edit {
+	background: #20a335;
+	padding: 8px 15px;
+	color: #fff;
+	border: none;
+	border-radius: 25px; 
+	cursor: pointer;
+	font-weight: bold;
+	text-transform: uppercase;
+  }
+  .btn-delete {
+	background: #940d0d;
+	padding: 8px 15px;
+	color: #fff;
+	border: none;
+	border-radius: 25px; 
+	cursor: pointer;
+	font-weight: bold;
+	text-transform: uppercase;
+  }
+  
