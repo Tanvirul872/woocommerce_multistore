@@ -127,13 +127,27 @@ add_action( 'wp_ajax_migration_trigger', 'migration_trigger' );
 add_action( 'wp_ajax_nopriv_migration_trigger', 'migration_trigger');
 
 function migration_trigger() {
-    
-    // get_source_orders();
-    
-    
-    
-     
-    
+    migrate_orders();
+    wp_send_json_success('api loaded') ;
+}
+
+
+
+
+function migrate_orders() {
+  
+    // Fetch orders from the source website (You need to implement this)
+    $source_orders = get_source_orders($source_site_url);
+    // Loop through orders and insert them into the destination website
+    foreach ($source_orders as $source_order) {
+        insert_order_into_destination($source_order);
+    }
+}
+
+
+
+function get_source_orders($source_site_url) {
+
 $source_orders = array();
 
 // get all the orders together start 
@@ -162,8 +176,6 @@ foreach ($results as $result) {
 
 
 
-
-
 // $combinedOrders = []; // Initialize the array to store orders
 $today = new DateTime(); // Get current date
 foreach ($woocommerce_instances as $instance) {
@@ -176,12 +188,21 @@ foreach ($woocommerce_instances as $instance) {
             'version' => 'wc/v3'
         ]
     );
-    
-    
-    $orders_data = $woocommerce->get('orders'); 
-    foreach ($orders_data as $order) {
+
+    $page = 1;
+    $perPage = 100; // You can adjust this value based on your needs
+
+    while (true) {
+        $orders_data = $woocommerce->get('orders', [
+            'per_page' => $perPage,
+            'page' => $page,
+        ]);
+
+        if (empty($orders_data)) {
+            break; // No more orders
+        }
         
-            
+        foreach ($orders_data as $order) {
             $orderDate = new DateTime($order->date_created); // Convert order date to DateTime object
 
             // $today = new DateTime(); // Get the current date
@@ -194,19 +215,19 @@ foreach ($woocommerce_instances as $instance) {
                 $combinedOrders[] = $order; // Add order to the array
             }
 
-
+            // // Compare order date with today's date
+            // if ($orderDate->format('Y-m-d') === $today->format('Y-m-d')) {
+            //     $combinedOrders[] = $order; // Add order to the array
+            // }
         }
 
- 
+        $page++;
+    }
 }
-
-
-// print_r('hello vaijan') ;
-
-
 
 // print_r($combinedOrders);
 // exit;
+
 
 
         // echo '<pre>' ;
@@ -237,19 +258,21 @@ foreach ($woocommerce_instances as $instance) {
         //     $dynamic_prefix = $matches[1];
         //  }
 
-        
+        // echo '<pre>' ;
+        // print_r($order) ;
+        // echo '</pre>' ;
+
+        // exit;
         $order_num_to_insert = $dynamic_prefix.'_'.$order->id;  
 
+    
         // Check if the order_num already exists in the table
         $order_exists = $wpdb->get_var(
             $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE order_num = %s", $order_num_to_insert)
         );
-        
-        
-        
-        echo '<pre>' ;
-        print_r('hello vai') ;
-        echo '</pre>' ;
+        // echo '<pre>' ;
+        // print_r($order_exists) ;
+        // echo '</pre>' ;
 
         if (!$order_exists) {
         
@@ -386,33 +409,17 @@ foreach ($woocommerce_instances as $instance) {
 
         }
     }
-    return $source_orders;
-    
-    
-    
-    
-    wp_send_json_success('api loaded 123') ;
+    // return $source_orders;
 }
 
 
 
 
- 
 
 
-function get_source_orders() {
-    
-    
-    
-    
-    
 
-    
-    
-    
-    
-    
-}
+
+
 
 
 
@@ -422,8 +429,8 @@ add_action('admin_menu', 'add_migration_menu');
 
 function add_migration_menu() {
     add_menu_page(
-        'Order Migration 123',
-        'Order Migration 123',
+        'Order Migration',
+        'Order Migration',
         'manage_options',
         'order_migration',
         'migration_page'
@@ -518,3 +525,6 @@ function adjust_shop_order_column_order($columns) {
 add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
 
 // extra codes end
+
+
+
