@@ -90,7 +90,6 @@ function create_woo_migrte_orders_table() {
     $sql = "CREATE TABLE IF NOT EXISTS $table_name (
         id INT AUTO_INCREMENT PRIMARY KEY,
         order_num VARCHAR(255) ,
-        order_id INT,
         status INT
 
     )";
@@ -128,13 +127,27 @@ add_action( 'wp_ajax_migration_trigger', 'migration_trigger' );
 add_action( 'wp_ajax_nopriv_migration_trigger', 'migration_trigger');
 
 function migration_trigger() {
-    
-    // get_source_orders();
-    
-    
-    
-     
-    
+    migrate_orders();
+    wp_send_json_success('api loaded') ;
+}
+
+
+
+
+function migrate_orders() {
+  
+    // Fetch orders from the source website (You need to implement this)
+    $source_orders = get_source_orders($source_site_url);
+    // Loop through orders and insert them into the destination website
+    foreach ($source_orders as $source_order) {
+        insert_order_into_destination($source_order);
+    }
+}
+
+
+
+function get_source_orders($source_site_url) {
+
 $source_orders = array();
 
 // get all the orders together start 
@@ -163,8 +176,6 @@ foreach ($results as $result) {
 
 
 
-
-
 // $combinedOrders = []; // Initialize the array to store orders
 $today = new DateTime(); // Get current date
 foreach ($woocommerce_instances as $instance) {
@@ -177,12 +188,21 @@ foreach ($woocommerce_instances as $instance) {
             'version' => 'wc/v3'
         ]
     );
-    
-    
-    $orders_data = $woocommerce->get('orders'); 
-    foreach ($orders_data as $order) {
+
+    $page = 1;
+    $perPage = 100; // You can adjust this value based on your needs
+
+    while (true) {
+        $orders_data = $woocommerce->get('orders', [
+            'per_page' => $perPage,
+            'page' => $page,
+        ]);
+
+        if (empty($orders_data)) {
+            break; // No more orders
+        }
         
-            
+        foreach ($orders_data as $order) {
             $orderDate = new DateTime($order->date_created); // Convert order date to DateTime object
 
             // $today = new DateTime(); // Get the current date
@@ -195,27 +215,21 @@ foreach ($woocommerce_instances as $instance) {
                 $combinedOrders[] = $order; // Add order to the array
             }
 
-
+            // // Compare order date with today's date
+            // if ($orderDate->format('Y-m-d') === $today->format('Y-m-d')) {
+            //     $combinedOrders[] = $order; // Add order to the array
+            // }
         }
 
- 
+        $page++;
+    }
 }
-
-<<<<<<< HEAD
-=======
-
-// print_r('hello vaijan') ;
->>>>>>> 350422b78db5c9637533b9c3af8193370a086532
-
-
 
 // print_r($combinedOrders);
 // exit;
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 350422b78db5c9637533b9c3af8193370a086532
+
         // echo '<pre>' ;
         // print_r(count($combinedOrders)) ;
         // echo '</pre>' ;
@@ -244,26 +258,21 @@ foreach ($woocommerce_instances as $instance) {
         //     $dynamic_prefix = $matches[1];
         //  }
 
-        
+        // echo '<pre>' ;
+        // print_r($order) ;
+        // echo '</pre>' ;
+
+        // exit;
         $order_num_to_insert = $dynamic_prefix.'_'.$order->id;  
 
+    
         // Check if the order_num already exists in the table
         $order_exists = $wpdb->get_var(
             $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE order_num = %s", $order_num_to_insert)
         );
-        
-        
-<<<<<<< HEAD
-
         // echo '<pre>' ;
-        // print_r('hello vai') ;
+        // print_r($order_exists) ;
         // echo '</pre>' ;
-=======
-        
-        echo '<pre>' ;
-        print_r('hello vai') ;
-        echo '</pre>' ;
->>>>>>> 350422b78db5c9637533b9c3af8193370a086532
 
         if (!$order_exists) {
         
@@ -330,7 +339,7 @@ foreach ($woocommerce_instances as $instance) {
                 $billing_address = array(
 
                     'first_name' => $source_order->billing->first_name,
-                    'last_name' => $source_order->billing->last_name,
+                    'last_name' => $source_order->billing->last_name.'('.$order_num_to_insert.')',
                     'address_1' => $source_order->billing->address_1,
                     'address_2' => $source_order->billing->address_2,
                     'city' => $source_order->billing->city,
@@ -380,29 +389,7 @@ foreach ($woocommerce_instances as $instance) {
 
                 $new_order->set_payment_method( $source_order->payment_method );
                 $new_order->set_payment_method_title( $source_order->payment_method_title );
-<<<<<<< HEAD
-                
-                 $new_order_id = $new_order->get_id(); 
-                
-                print_r($new_order_id) ;
-                // exit; 
                 $new_order->calculate_totals();
-                
-                
-                $data = array(
-                'order_num' => $order_num_to_insert,
-                'order_id' => $new_order_id,  
-                'status' => 1,
-                 
-                 );
-                 $wpdb->insert($table_name, $data);
-            
-            
-             
-            
-=======
-                $new_order->calculate_totals();
->>>>>>> 350422b78db5c9637533b9c3af8193370a086532
                     // $new_order->save();
                 } 
                 
@@ -411,60 +398,28 @@ foreach ($woocommerce_instances as $instance) {
             // add order end 
             // $source_orders[] = $order;
 
-<<<<<<< HEAD
-  
-
-            
-        }else{
-            
-            wp_send_json_success('No new products for sysnc available ') ;
-            wp_die(); 
-=======
             $data = array(
                 'order_num' => $order_num_to_insert,
                 'status' => 1,
             );
             $wpdb->insert($table_name, $data);
->>>>>>> 350422b78db5c9637533b9c3af8193370a086532
 
             
         } 
 
         }
     }
-<<<<<<< HEAD
-    // return $source_orders; 
-    
-    wp_die(); 
-=======
-    return $source_orders;
-    
-    
->>>>>>> 350422b78db5c9637533b9c3af8193370a086532
-    
-    
-    wp_send_json_success('api loaded 123') ;
+    // return $source_orders;
 }
 
 
 
 
- 
 
 
-function get_source_orders() {
-    
-    
-    
-    
-    
 
-    
-    
-    
-    
-    
-}
+
+
 
 
 
@@ -474,8 +429,8 @@ add_action('admin_menu', 'add_migration_menu');
 
 function add_migration_menu() {
     add_menu_page(
-        'Order Migration 123',
-        'Order Migration 123',
+        'Order Migration',
+        'Order Migration',
         'manage_options',
         'order_migration',
         'migration_page'
@@ -541,68 +496,35 @@ function webhook_alert_add_template($templates) {
 
 
 
-// // Add custom column header
-// function custom_shop_order_column($columns) {
-//     $columns['source'] = 'Source';
-//     return $columns;
-// }
-// add_filter('manage_edit-shop_order_columns', 'custom_shop_order_column');
+// Add custom column header
+function custom_shop_order_column($columns) {
+    $columns['source'] = 'Source';
+    return $columns;
+}
+add_filter('manage_edit-shop_order_columns', 'custom_shop_order_column');
 
-// // Populate custom column with content
-// function populate_custom_shop_order_column($column, $post_id, ) {
-    
-    
- 
- 
- 
- 
-//  if ($column === 'source') {
-//     // Get the order object using the $post_id (order ID)
-    
-    
-//     global $wpdb;
-//     $table_name = $wpdb->prefix . 'woo_migrte_orders';
-//     $get_details = $wpdb->get_row(
-//        $wpdb->prepare("SELECT order_num FROM $table_name WHERE order_id = %d", $post_id)
-//     );
+// Populate custom column with content
+function populate_custom_shop_order_column($column, $post_id) {
+    if ($column === 'source') {
+        echo '<a href="https://example.com">Web Link'.$post_id.'</a>';
+    }
+}
+add_action('manage_shop_order_posts_custom_column', 'populate_custom_shop_order_column', 10, 2);
 
-        
-//         // echo '<pre>' ; 
-//         // print_r($get_details) ;
-    
-//     echo esc_html($get_details->order_num);
-        
-        
+// Adjust column order
+function adjust_shop_order_column_order($columns) {
+    $new_columns = array();
+    foreach ($columns as $key => $value) {
+        $new_columns[$key] = $value;
+        if ($key === 'total') {
+            $new_columns['source'] = 'Source';
+        }
+    }
+    return $new_columns;
+}
+add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
 
-<<<<<<< HEAD
-    
-    
-    
-    
-// }
-
- 
- 
-
-    
-    
-    
-// }
-// add_action('manage_shop_order_posts_custom_column', 'populate_custom_shop_order_column', 10, 2);
-
-// // Adjust column order
-// function adjust_shop_order_column_order($columns) {
-//     $new_columns = array();
-//     foreach ($columns as $key => $value) {
-//         $new_columns[$key] = $value;
-//         if ($key === 'total') {
-//             $new_columns['source'] = 'Source';
-//         }
-//     }
-//     return $new_columns;
-// }
-// add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
-
-=======
->>>>>>> 350422b78db5c9637533b9c3af8193370a086532
 // extra codes end
+
+
+
