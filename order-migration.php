@@ -3,7 +3,7 @@
 Plugin Name: Order Migration
 Description: Migrate orders from one WooCommerce site to another.
 Version: 1.0
-Author: Your Name
+Author: Tanvirul Karim
 */
 
 
@@ -12,10 +12,8 @@ include('database.php');
 include('ajax-actions.php');
 
 
-
 require __DIR__ . '/vendor/autoload.php';
 use Automattic\WooCommerce\Client;
-
 
 
 // Load WordPress and WooCommerce functions  
@@ -43,7 +41,7 @@ function plugin_css_jsscripts() {
 }
 
 
-echo '<div style="margin-left:450px">' ;
+// echo '<div style="margin-left:450px">' ;
 
 
 // test data start 
@@ -64,10 +62,10 @@ echo '<div style="margin-left:450px">' ;
 
 // if (is_array($orders_data)) {
 //     foreach ($orders_data as $order) {
-//         // echo '<pre>' ;
-//         // print_r($order);
-//         // echo '</pre>' ;
-//         // // You might need to transform and format the order data as needed
+//         echo '<pre>' ;
+//         print_r($order);
+//         echo '</pre>' ;
+//         // You might need to transform and format the order data as needed
 //         // before adding it to the source_orders array
 //         $source_orders[] = $order;
 //     }
@@ -78,7 +76,7 @@ echo '<div style="margin-left:450px">' ;
 
 // test data end 
 
-echo '</div>' ;
+// echo '</div>' ;
 
 
 
@@ -92,6 +90,7 @@ function create_woo_migrte_orders_table() {
     $sql = "CREATE TABLE IF NOT EXISTS $table_name (
         id INT AUTO_INCREMENT PRIMARY KEY,
         order_num VARCHAR(255) ,
+        order_id INT,
         status INT
 
     )";
@@ -103,6 +102,24 @@ function create_woo_migrte_orders_table() {
 
 
 
+//function for create a table for save api data 
+register_activation_hook( __FILE__, 'create_custom_table_on_theme_activation' );
+function create_custom_table_on_theme_activation() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'woo_migrate_api_data';
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        website VARCHAR(255) NOT NULL,
+        api_url VARCHAR(255) NOT NULL,
+        consumer_key VARCHAR(100) NOT NULL,
+        consumer_secret VARCHAR(100) NOT NULL,
+        status INT DEFAULT 0
+    )";
+
+    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+    dbDelta( $sql );
+}
+
 
 
 // Make  active members ajax function
@@ -111,91 +128,14 @@ add_action( 'wp_ajax_migration_trigger', 'migration_trigger' );
 add_action( 'wp_ajax_nopriv_migration_trigger', 'migration_trigger');
 
 function migration_trigger() {
-    // Check if the migration trigger is set
-    // if (isset($_GET['do_migration']) && $_GET['do_migration'] === 'true') {
-    //     migrate_orders();
-        
-    // }
-    migrate_orders();
-    wp_send_json_success('api loaded') ;
-}
-
-
-
-
-function migrate_orders() {
-  
-
-    // Source website URL (http://localhost/ecom_4/)
-    // $source_site_url = 'http://localhost/ecom_4/';
     
-    // Fetch orders from the source website (You need to implement this)
-    $source_orders = get_source_orders($source_site_url);
-
-    // Loop through orders and insert them into the destination website
-    foreach ($source_orders as $source_order) {
-        insert_order_into_destination($source_order);
-    }
-}
-
-
-
-function get_source_orders($source_site_url) {
-
-    $source_orders = array();
-
-
-    // $woocommerce = new Client(
-    //     'http://localhost/ecom_4', // Your store URL
-    //     'ck_6d97d21f227f33501cdcf59f40488269bad2351f', // Your consumer key
-    //     'cs_67465670667804faecf1ae5284842bd4ba0bf5bf', // Your consumer secret
-    //     [
-    //         'wp_api' => true, // Enable the WP REST API integration
-    //         'version' => 'wc/v3' // WooCommerce WP REST API version
-    //     ]
-    // );
+    // get_source_orders();
     
-
-    // $woocommerce_2 = new Client(
-    //     'http://localhost/ecom_3', // Your store URL
-    //     'ck_4f5e21de6cb84806426e978c602f23c1487c1ca5', // Your consumer key
-    //     'cs_18b5f19a54accc7f64706b9f3f576258cca4d16b', // Your consumer secret
-    //     [
-    //         'wp_api' => true, // Enable the WP REST API integration
-    //         'version' => 'wc/v3' // WooCommerce WP REST API version
-    //     ]
-    // );
-
-
-    // $woocommerce_3 = new Client(
-    //     'http://localhost/ecom_2', // Your store URL
-    //     'ck_4ec365f7013491e3a4b30a7952da84bb3e1f4778', // Your consumer key
-    //     'cs_9115079c8d6154869e9636b150b79bdc0c9d4320', // Your consumer secret
-    //     [
-    //         'wp_api' => true, // Enable the WP REST API integration
-    //         'version' => 'wc/v3' // WooCommerce WP REST API version
-    //     ]
-    // );
-
-    // $woocommerce_4 = new Client(
-    //     'http://localhost/ecom_1', // Your store URL
-    //     'ck_4e4679445549398821d59c2ba44f8f85ef3f6d96', // Your consumer key
-    //     'cs_1c33b41fbab7b7563acfc60ba5954858d25f3b82', // Your consumer secret
-    //     [
-    //         'wp_api' => true, // Enable the WP REST API integration
-    //         'version' => 'wc/v3' // WooCommerce WP REST API version
-    //     ]
-    //  );
-
-
-
-
-
-
-    // $orders_data = $woocommerce->get('orders') ;
-    // $orders_data_2 = $woocommerce_2->get('orders') ;
-
-
+    
+    
+     
+    
+$source_orders = array();
 
 // get all the orders together start 
 // Initialize an array to hold the combined orders
@@ -221,10 +161,12 @@ foreach ($results as $result) {
     ];
 }
 
-// Now you have a dynamic array of WooCommerce instances and configurations
-// You can use this $woocommerce_instances array for further processing
 
-// Loop through each WooCommerce instance and fetch orders
+
+
+
+// $combinedOrders = []; // Initialize the array to store orders
+$today = new DateTime(); // Get current date
 foreach ($woocommerce_instances as $instance) {
     $woocommerce = new Client(
         $instance['url'],
@@ -235,111 +177,93 @@ foreach ($woocommerce_instances as $instance) {
             'version' => 'wc/v3'
         ]
     );
+    
+    
+    $orders_data = $woocommerce->get('orders'); 
+    foreach ($orders_data as $order) {
+        
+            
+            $orderDate = new DateTime($order->date_created); // Convert order date to DateTime object
 
-    $orders_data = $woocommerce->get('orders');
-    $combinedOrders = array_merge($combinedOrders, $orders_data);
+            // $today = new DateTime(); // Get the current date
+            $yesterday = new DateTime('yesterday'); // Get the date for yesterday
+
+            if (
+                $orderDate->format('Y-m-d') === $today->format('Y-m-d') ||
+                $orderDate->format('Y-m-d') === $yesterday->format('Y-m-d')
+            ) {
+                $combinedOrders[] = $order; // Add order to the array
+            }
+
+
+        }
+
+ 
 }
 
-// Now $combinedOrders contains orders from all WooCommerce instances
-
-
-    // echo '<pre>' ;
-    // print_r($combinedOrders) ;
-    // echo '</pre>' ;
-
-
-// print_r($combinedOrders); 
-
-
-// get all the orders together end 
 
 
 
 
-
-    // $links = [
-    //     'http://localhost/ecom_3/checkout/order-pay/26/?pay_for_order=true&key=wc_order_x4ruH0f6XHHLX',
-    //     // 'http://localhost/abc/checkout/order-pay/26/?pay_for_order=true&key=wc_order_x4ruH0f6XHHLX',
-    //     // 'http://localhost/ecom_2/checkout/order-pay/26/?pay_for_order=true&key=wc_order_x4ruH0f6XHHLX',
-    //     // 'http://localhost/hello/checkout/order-pay/26/?pay_for_order=true&key=wc_order_x4ruH0f6XHHLX'
-    // ];
-    
-    // $link =  'http://localhost/ecom_3/checkout/order-pay/26/?pay_for_order=true&key=wc_order_x4ruH0f6XHHLX' ;
-    // // foreach ($links as $link) {
-    //     // Use regular expression to match the dynamic part
-    //     if (preg_match('/http:\/\/localhost\/(.*?)\/checkout\/order-pay/', $link, $matches)) {
-    //         $dynamic_part = $matches[1];
-    //         echo "Dynamic part: $dynamic_part\n";
-
-    // //         echo '<pre>' ;
-    // // print_r($orders_data_2[0]) ;
-    // // echo '</pre>' ;
-
-    //     }
-    // // }
-
-    
-
-
-    
-
-
-
-
-    // foreach ($orders_data as $order) { 
-    //     echo '<pre>' ;
-    //     print_r($order->payment_url) ;
-    //     echo '</pre>' ;
-    // } 
-
+        // echo '<pre>' ;
+        // print_r(count($combinedOrders)) ;
+        // echo '</pre>' ;
 
     if (is_array($combinedOrders)) {
         foreach ($combinedOrders as $order) { 
+// get all the orders together end 
+
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'woo_migrte_orders';
       
-         $link =  $order->payment_url ;
-         if (preg_match('/http:\/\/localhost\/(.*?)\/checkout\/order-pay/', $link, $matches)) {
-            $dynamic_prefix = $matches[1];
-         }
 
-        // echo '<pre>' ;
-        // print_r($order) ;
-        // echo '</pre>' ;
+         //  this code is for live link 
+         $url =  $order->payment_url ;
+        $parsed_url = parse_url($url);
+        $host_parts = explode('.', $parsed_url['host']);
+        $dynamic_prefix = $host_parts[0];
 
+        //   print_r($unique_domains) ;  
+        //   exit;
 
-        // exit;
+        //  this code is for localhost 
+        // $link =  $order->payment_url ;
+        //  if (preg_match('/http:\/\/localhost\/(.*?)\/checkout\/order-pay/', $link, $matches)) {
+        //     $dynamic_prefix = $matches[1];
+        //  }
+
+        
         $order_num_to_insert = $dynamic_prefix.'_'.$order->id;  
 
-    
         // Check if the order_num already exists in the table
         $order_exists = $wpdb->get_var(
             $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE order_num = %s", $order_num_to_insert)
         );
+        
+        
+
         // echo '<pre>' ;
-        // print_r($order_exists) ;
+        // print_r('hello vai') ;
         // echo '</pre>' ;
 
         if (!$order_exists) {
-            $data = array(
-                'order_num' => $order_num_to_insert,
-                'status' => 1,
-            );
-            $wpdb->insert($table_name, $data);
+        
 
 
 
 // add order start 
             $source_order = $order ;
 
-            
-            // exit; 
+            // print_r($source_order) ;    
+            // exit;   
+    
+
             if (class_exists('WooCommerce')) {
                 $order_data = array(
-                    'status' => 'processing', // Change to desired status
+                    'status' => $source_order->status,  // Change to desired status
                     'customer_id' => $source_order->customer_id, // Replace with appropriate customer ID
-                    'customer_note' => 'customer note',
+                    'customer_note' => $source_order->customer_note,
                     'parent'        => null,
                     'created_via'   => null,
                     'cart_hash'     => null,
@@ -362,10 +286,13 @@ foreach ($woocommerce_instances as $instance) {
                             'product_id'   => $line_item->product_id,
                           );
                          
-                        $sku = '123'; //for test purpose 
+
+                        $sku = $line_item->sku ; //for test purpose 
+                        // $sku = '123' ;
                         $product_id = wc_get_product_id_by_sku( $sku );
                         $product = wc_get_product($product_id);
-                        $new_order->add_product($product, $line_item->quantity);      
+                        $new_order->add_product($product, $line_item->quantity);
+                       
                      
                 $shipping_address = array(             
                     'first_name' => $source_order->shipping->first_name,
@@ -378,84 +305,132 @@ foreach ($woocommerce_instances as $instance) {
                     'country' => $source_order->shipping->country,
                     'company'    => $source_order->shipping->company,
                     'email'      => $source_order->shipping->email,
-                    'phone'      => $source_order->shipping->phone,
+                    'phone'      => $source_order->billing->phone,
                 );
 
 
                 $billing_address = array(
 
                     'first_name' => $source_order->billing->first_name,
-                    'last_name' => $source_order->billing->last_name.'('.$order_num_to_insert.')',
+                    'last_name' => $source_order->billing->last_name,
                     'address_1' => $source_order->billing->address_1,
                     'address_2' => $source_order->billing->address_2,
                     'city' => $source_order->billing->city,
                     'state' => $source_order->billing->state,
                     'postcode' => $source_order->billing->postcode,
                     'country' => $source_order->billing->country,
-                    'company'    => $source_order->shipping->company,
-                    'email'      => $source_order->shipping->email,
-                    'phone'      => $source_order->shipping->phone,   
+                    'company'    => $source_order->billing->company,
+                    'email'      => $source_order->billing->email,
+                    'phone'      => $source_order->billing->phone,   
+                    'payment_method'  => $source_order->payment_method_title,   
                 );
 
+               
+                // $new_order->set_payment_method($payment_gateways['stripe']);
 
                 $new_order->set_address( $billing_address, 'billing' );
                 $new_order->set_address( $shipping_address, 'shipping' );
-                        
+                $new_order->set_customer_id($source_order->customer_id);
+                $new_order->set_billing_email($billing_address['email']);
+                $new_order->set_billing_phone($billing_address['phone']);
+                
                 }
-    
-                    $new_order->calculate_totals();
+
+
+                // echo '<pre>' ;  
+                // print_r($source_order->shipping_lines[0]) ; 
+
+                $shipping_method_title = $source_order->shipping_lines[0]->method_title ; 
+                $shipping_method_id = $source_order->shipping_lines[0]->method_id ; 
+                $shipping_instance_id = $source_order->shipping_lines[0]->instance_id ; 
+                $shipping_total = $source_order->shipping_lines[0]->total ; 
+                // exit ; 
+
+// add to order
+
+                $shipping = new WC_Order_Item_Shipping();             
+                $shipping->set_method_title( $shipping_method_title );
+                $shipping->set_method_id($shipping_method_id); // Set the dynamic method ID
+                $shipping->set_total( $shipping_total ); // optional 
+                $new_order->add_item( $shipping ); 
+
+
+                 // Display payment method in billing address section
+                 $payment_method = $source_order->payment_method_title;
+                 $billing_address['payment_method'] = 'Payment Method: ' . esc_html($payment_method);
+                 $payment_gateways = WC()->payment_gateways->payment_gateways(); 
+
+                $new_order->set_payment_method( $source_order->payment_method );
+                $new_order->set_payment_method_title( $source_order->payment_method_title );
+                
+                 $new_order_id = $new_order->get_id(); 
+                
+                print_r($new_order_id) ;
+                // exit; 
+                $new_order->calculate_totals();
+                
+                
+                $data = array(
+                'order_num' => $order_num_to_insert,
+                'order_id' => $new_order_id,  
+                'status' => 1,
+                 
+                 );
+                 $wpdb->insert($table_name, $data);
+            
+            
+             
+            
                     // $new_order->save();
-                }
+                } 
+                
         
             }
             // add order end 
             // $source_orders[] = $order;
+
+  
+
+            
+        }else{
+            
+            wp_send_json_success('No new products for sysnc available ') ;
+            wp_die(); 
+
+            
         } 
 
         }
     }
-    return $source_orders;
+    // return $source_orders; 
+    
+    wp_die(); 
+    
+    
+    wp_send_json_success('api loaded 123') ;
 }
 
 
 
-function insert_order_into_destination($source_order) {
 
-    // echo '<pre>' ;
-    // print_r($source_order);
-    // echo '</pre>' ;
-
-    // Check if WooCommerce is active
+ 
 
 
-    // if (class_exists('WooCommerce')) {
-    //     $order_data = array(
-    //         'status' => 'processing', // Change to desired status
-    //         'customer_id' => $source_order->customer_id, // Replace with appropriate customer ID
-    //     );
+function get_source_orders() {
+    
+    
+    
+    
+    
 
-    //     $new_order = wc_create_order($order_data);
-    //     if (is_a($new_order, 'WC_Order')) {
-
-    //         foreach ($source_order->line_items as $line_item) {
-
-    //             print_r($line_item) ;
-                
-    //             $product = wc_get_product($line_item->product_id);
-    //             $new_order->add_product($product, $line_item->quantity);
-    //         }
-
-    //         $new_order->calculate_totals();
-    //     }
-    // }
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
 }
+
+
 
 
 // Add a menu item in the WordPress admin for triggering migration
@@ -463,8 +438,8 @@ add_action('admin_menu', 'add_migration_menu');
 
 function add_migration_menu() {
     add_menu_page(
-        'Order Migration',
-        'Order Migration',
+        'Order Migration 123',
+        'Order Migration 123',
         'manage_options',
         'order_migration',
         'migration_page'
@@ -512,7 +487,12 @@ function edit_order_data() {
 
 
 
-
+// Register the custom template
+add_filter('theme_page_templates', 'webhook_alert_add_template');
+function webhook_alert_add_template($templates) {
+    $templates['templates/webhook-receiver.php'] = 'Webhook Receiver Template';
+    return $templates;
+}
 
 
 
@@ -525,34 +505,65 @@ function edit_order_data() {
 
 
 
-// Add custom column header
-function custom_shop_order_column($columns) {
-    $columns['source'] = 'Source';
-    return $columns;
-}
-add_filter('manage_edit-shop_order_columns', 'custom_shop_order_column');
+// // Add custom column header
+// function custom_shop_order_column($columns) {
+//     $columns['source'] = 'Source';
+//     return $columns;
+// }
+// add_filter('manage_edit-shop_order_columns', 'custom_shop_order_column');
 
-// Populate custom column with content
-function populate_custom_shop_order_column($column, $post_id) {
-    if ($column === 'source') {
-        echo '<a href="https://example.com">Web Link'.$post_id.'</a>';
-    }
-}
-add_action('manage_shop_order_posts_custom_column', 'populate_custom_shop_order_column', 10, 2);
+// // Populate custom column with content
+// function populate_custom_shop_order_column($column, $post_id, ) {
+    
+    
+ 
+ 
+ 
+ 
+//  if ($column === 'source') {
+//     // Get the order object using the $post_id (order ID)
+    
+    
+//     global $wpdb;
+//     $table_name = $wpdb->prefix . 'woo_migrte_orders';
+//     $get_details = $wpdb->get_row(
+//        $wpdb->prepare("SELECT order_num FROM $table_name WHERE order_id = %d", $post_id)
+//     );
 
-// Adjust column order
-function adjust_shop_order_column_order($columns) {
-    $new_columns = array();
-    foreach ($columns as $key => $value) {
-        $new_columns[$key] = $value;
-        if ($key === 'total') {
-            $new_columns['source'] = 'Source';
-        }
-    }
-    return $new_columns;
-}
-add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
+        
+//         // echo '<pre>' ; 
+//         // print_r($get_details) ;
+    
+//     echo esc_html($get_details->order_num);
+        
+        
+
+    
+    
+    
+    
+// }
+
+ 
+ 
+
+    
+    
+    
+// }
+// add_action('manage_shop_order_posts_custom_column', 'populate_custom_shop_order_column', 10, 2);
+
+// // Adjust column order
+// function adjust_shop_order_column_order($columns) {
+//     $new_columns = array();
+//     foreach ($columns as $key => $value) {
+//         $new_columns[$key] = $value;
+//         if ($key === 'total') {
+//             $new_columns['source'] = 'Source';
+//         }
+//     }
+//     return $new_columns;
+// }
+// add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
 
 // extra codes end
-
-

@@ -12,8 +12,8 @@ jQuery(document).ready(function($) {
             url: ajax_url,
             type: 'post',
             data: data,
-            success: function(response) {
-                console.log('API loaded successfully');
+            success: function(res) {
+                // console.log('API loaded successfully');
                 // alert('API loaded successfully');
             }
         });
@@ -25,7 +25,7 @@ jQuery(document).ready(function($) {
     // Load API function every 10 seconds
     setInterval(function() {
         loadApi();
-    }, 10000); // 10000 milliseconds = 10 seconds
+    }, 60000); // 10000 milliseconds = 10 seconds
 
 
 
@@ -147,9 +147,3 @@ jQuery(document).ready(function($) {
 
 
 });
-
-
-
-
-    
-    
