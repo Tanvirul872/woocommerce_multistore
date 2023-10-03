@@ -124,7 +124,6 @@ jQuery(document).ready(function ($) {
     var postId = postIdMatch[1];
     var titleValue = $("#select2-order_status-container").attr("title");
 
-
     var billingFirstName = $("#_billing_first_name").val();
     var billingLastName = $("#_billing_last_name").val();
     var billingCompany = $("#_billing_company").val();
@@ -137,9 +136,8 @@ jQuery(document).ready(function ($) {
     var billingEmail = $("#_billing_email").val();
     var billingPhone = $("#_billing_phone").val();
 
-
     var shippingFirstName = $("#_shipping_first_name").val();
-    var shippingLastName = $("#_shipping_last_name").val();   
+    var shippingLastName = $("#_shipping_last_name").val();
     var shippingCompany = $("#_shipping_company").val();
     var shippingAddressOne = $("#_shipping_address_1").val();
     var shippingAddressTwo = $("#_shipping_address_2").val();
@@ -192,4 +190,101 @@ jQuery(document).ready(function ($) {
       },
     });
   });
+
+
+  
+
+  $("#get_all_products_api").click(function (event) {
+    event.preventDefault();
+
+    alert("hello products");
+
+    var ajax_url = plugin_ajax_object.ajax_url; 
+
+    // Get the educational certificate files
+    var form = 1;
+    var formData = new FormData();
+    formData.append("action", "get_all_products_by_api");
+    formData.append("get_all_products_by_api", form);
+
+    $.ajax({
+      url: ajax_url,
+      data: formData,
+      processData: false,
+      contentType: false,
+      type: "post",
+      // data: data,
+
+      success: function (response) {
+        // console.log(coupon_code);
+        // alert("successfully store data");
+        // location.reload();
+      },
+    });
+  });
+
+
+  $("#get_all_categories_api").click(function (event) {
+    event.preventDefault();
+
+    alert("hello categories");
+
+    var ajax_url = plugin_ajax_object.ajax_url; 
+
+    // Get the educational certificate files
+    var form = 1;
+    var formData = new FormData();
+    formData.append("action", "get_all_categories_by_api");
+    formData.append("get_all_categories_by_api", form);
+
+    $.ajax({
+      url: ajax_url,
+      data: formData,
+      processData: false,
+      contentType: false,
+      type: "post",
+      // data: data,
+
+      success: function (response) {
+        // console.log(coupon_code);
+        // alert("successfully store data");
+        // location.reload();
+      },
+    });
+  });
+
+
+
+  $("#get_all_tags_api").click(function (event) {
+    event.preventDefault();
+
+    alert("hello tags");
+
+    var ajax_url = plugin_ajax_object.ajax_url; 
+
+    // Get the educational certificate files
+    var form = 1;
+    var formData = new FormData();
+    formData.append("action", "get_all_tags_by_api");
+    formData.append("get_all_tags_by_api", form);
+
+    $.ajax({
+      url: ajax_url,
+      data: formData,
+      processData: false,
+      contentType: false,
+      type: "post",
+      // data: data,
+
+      success: function (response) {
+        // console.log(coupon_code);
+        // alert("successfully store data");
+        // location.reload();
+      },
+    });
+  });
+
+
+
+
 });

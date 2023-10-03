@@ -483,6 +483,20 @@ function add_migration_menu()
         'migration_page'
     );
 
+
+    // kamrul submenu start 
+
+    add_submenu_page(
+        'order_migration', // The parent menu slug
+        'All Products', // The submenu page title
+        'All Products', // The submenu link text
+        'manage_options', // Capability required to access this submenu
+        'all_products', // The submenu slug (used in URL)
+        'show_all_products' // The function to display the submenu page content
+    );
+
+    // kamrul submenu end
+
     // Add the submenu page for edit users data
     add_submenu_page(
         '',    // Parent menu slug
@@ -519,6 +533,13 @@ function create_order_data()
 function edit_order_data()
 {
     include(plugin_dir_path(__FILE__) . 'templates/edit-order-api.php');
+}
+
+
+function show_all_products()
+{
+
+    include(plugin_dir_path(__FILE__) . 'templates/get-all-products.php');
 }
 
 
@@ -577,3 +598,299 @@ function adjust_shop_order_column_order($columns)
 add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
 
 // extra codes end
+
+// function for add products start kamrul
+
+
+// function add_product_to_woocommerce($product_data)
+// {
+
+//     // Create a new product
+//     $product = array(
+//         'post_title'    => $product_data['title'],
+//         'post_content'  => $product_data['description'],
+//         'post_status'   => 'publish',
+//         'post_author'   => 1, // Author ID
+//         'post_type'     => 'product',
+//     );
+
+//     $product_id = wp_insert_post($product);
+
+//     // Set product data
+//     update_post_meta($product_id, '_sku', $product_data['sku']);
+//     update_post_meta($product_id, '_price', $product_data['price']);
+//     update_post_meta($product_id, '_regular_price', $product_data['regular_price']);
+//     update_post_meta($product_id, '_sale_price', $product_data['sale_price']);
+//     update_post_meta($product_id, '_manage_stock', 'yes');
+//     update_post_meta($product_id, '_stock', $product_data['stock']);
+//     update_post_meta($product_id, '_stock_status', 'instock');
+//     update_post_meta($product_id, '_product_attributes', array());
+//     update_post_meta($product_id, '_visibility', 'visible');
+
+//     // Add product images
+//     $image_id = media_handle_upload('image_url', $product_id);
+//     set_post_thumbnail($product_id, $image_id);
+
+//     // Assign product categories and tags
+//     wp_set_post_terms($product_id, $product_data['categories'], 'product_cat');
+//     wp_set_post_terms($product_id, $product_data['tags'], 'product_tag');
+
+//     // Save the product
+//     wp_update_post(array('ID' => $product_id));
+
+//     return $product_id;
+// }
+
+// Example usage:
+// $product_data = array(
+//     'title'          => 'Product Title',
+//     'description'    => 'Product Description',
+//     'sku'            => 'Product SKU',
+//     'price'          => 'Product Price',
+//     'regular_price'  => 'Product Regular Price',
+//     'sale_price'     => 'Product Sale Price',
+//     'stock'          => 'Product Stock Quantity',
+//     'categories'     => array('Category 1', 'Category 2'), // Category names
+//     'tags'           => array('Tag 1', 'Tag 2'), // Tag names
+//     'image_url'      => 'URL or path to product image',
+// );
+
+// $product_id = add_product_to_woocommerce($product_data);
+
+
+
+
+
+add_action('wp_ajax_get_all_products_by_api', 'get_all_products_by_api');
+add_action('wp_ajax_nopriv_get_all_products_by_api', 'get_all_products_by_api');
+
+function get_all_products_by_api()
+{
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'woo_migrate_api_data';
+    $results = $wpdb->get_results("SELECT * FROM $table_name");
+
+
+
+
+    $woocommerce_instances = [];
+
+    foreach ($results as $result) {
+        $api_url = $result->api_url;
+        $consumer_key = $result->consumer_key;
+        $consumer_secret = $result->consumer_secret;
+
+        // Add the WooCommerce instance and configuration to the array
+        $woocommerce_instances[] = [
+            'url' => $api_url,
+            'consumer_key' => $consumer_key,
+            'consumer_secret' => $consumer_secret,
+        ];
+    }
+
+    // echo '<pre>';
+    // print_r($woocommerce_instances);
+    // exit;
+
+
+
+
+    $all_products = [];
+    foreach ($woocommerce_instances as $instance) {
+        $woocommerce = new Client(
+            $instance['url'],
+            $instance['consumer_key'],
+            $instance['consumer_secret'],
+            [
+                'wp_api' => true,
+                'version' => 'wc/v3'
+            ]
+        );
+
+        $get_all_products = $woocommerce->get('products');
+        foreach ($get_all_products as $products) {
+            $all_products[] = $products;
+        }
+    }
+
+
+
+    // echo '<pre>';
+    // print_r($all_products);
+    // exit;
+
+    foreach ($all_products as $product_data) {
+        // create a product by function 
+        $product = array(
+            'post_title'    => $product_data->name,
+            'post_content'  => $product_data->description,
+            'post_status'   => $product_data->status,
+            'post_author'   => 1, // Author ID
+            'post_type'     => 'product',
+        );
+
+        $product_id = wp_insert_post($product);
+
+        // Set product data
+        update_post_meta($product_id, '_sku', $product_data->sku);
+        update_post_meta($product_id, '_price', $product_data->price);
+        update_post_meta($product_id, '_regular_price', $product_data->regular_price);
+        update_post_meta($product_id, '_sale_price', $product_data->sale_price);
+        update_post_meta($product_id, '_manage_stock', $product_data->manage_stock);
+        update_post_meta($product_id, '_stock', $product_data->stock_quantity);
+        update_post_meta($product_id, '_stock_status', $product_data->stock_status);
+        update_post_meta($product_id, '_product_attributes', $product_data->attributes);
+        update_post_meta($product_id, '_visibility', $product_data->catalog_visibility);
+
+
+
+        // Add product images
+        $image_id = media_handle_upload('image_url', $product_id);
+        set_post_thumbnail($product_id, $image_id);
+
+
+        $get_all_categories = $product_data->categories;
+
+        $cat_ids = [];
+        foreach ($get_all_categories as $categories) {
+
+            $cat_slug = $categories->slug;
+
+            $category_term = get_term_by('slug', $cat_slug, 'product_cat');
+
+            $cat_id = $category_term->term_id;
+            $cat_ids[] = $cat_id;
+        }
+
+        $get_all_tags = $product_data->tags;
+
+        $tag_ids = [];
+        foreach ($get_all_tags as $tags) {
+
+            $tag_slug = $tags->slug;
+            $tag_term = get_term_by('slug', $tag_slug, 'product_tag');
+            $tag_id = $tag_term->term_id;
+
+            $tag_ids[] = $tag_id;
+        }
+        wp_set_post_terms($product_id, $cat_ids, 'product_cat');
+        wp_set_post_terms($product_id, $tag_ids, 'product_tag');
+        
+        // Save the product
+        wp_update_post(array('ID' => $product_id));
+
+        //  Mark the import as completed
+        update_option('product_api_import_completed', true);
+    }
+    wp_die();
+}
+
+
+
+
+add_action('wp_ajax_get_all_categories_by_api', 'get_all_categories_by_api');
+add_action('wp_ajax_nopriv_get_all_categories_by_api', 'get_all_categories_by_api');
+
+function get_all_categories_by_api()
+{
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'woo_migrate_api_data';
+    $results = $wpdb->get_results("SELECT * FROM $table_name");
+
+
+    $woocommerce_instances = [];
+
+    foreach ($results as $result) {
+        $api_url = $result->api_url;
+        $consumer_key = $result->consumer_key;
+        $consumer_secret = $result->consumer_secret;
+
+        // Add the WooCommerce instance and configuration to the array
+        $woocommerce_instances[] = [
+            'url' => $api_url,
+            'consumer_key' => $consumer_key,
+            'consumer_secret' => $consumer_secret,
+        ];
+    }
+
+
+
+    foreach ($woocommerce_instances as $instance) {
+        $woocommerce = new Client(
+            $instance['url'],
+            $instance['consumer_key'],
+            $instance['consumer_secret'],
+            [
+                'wp_api' => true,
+                'version' => 'wc/v3'
+            ]
+        );
+
+        $all_categories = $woocommerce->get('products/categories');
+
+        foreach ($all_categories as $cat) {
+
+            wp_insert_term($cat->name, 'product_cat');
+        }
+    }
+
+    wp_die();
+}
+
+
+
+
+add_action('wp_ajax_get_all_tags_by_api', 'get_all_tags_by_api');
+add_action('wp_ajax_nopriv_get_all_tags_by_api', 'get_all_tags_by_api');
+
+function get_all_tags_by_api()
+{
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'woo_migrate_api_data';
+    $results = $wpdb->get_results("SELECT * FROM $table_name");
+
+
+    $woocommerce_instances = [];
+
+    foreach ($results as $result) {
+        $api_url = $result->api_url;
+        $consumer_key = $result->consumer_key;
+        $consumer_secret = $result->consumer_secret;
+
+        // Add the WooCommerce instance and configuration to the array
+        $woocommerce_instances[] = [
+            'url' => $api_url,
+            'consumer_key' => $consumer_key,
+            'consumer_secret' => $consumer_secret,
+        ];
+    }
+
+
+
+    foreach ($woocommerce_instances as $instance) {
+        $woocommerce = new Client(
+            $instance['url'],
+            $instance['consumer_key'],
+            $instance['consumer_secret'],
+            [
+                'wp_api' => true,
+                'version' => 'wc/v3'
+            ]
+        );
+
+        $all_tags = $woocommerce->get('products/tags');
+
+        foreach ($all_tags as $tag) {
+
+            wp_insert_term($tag->name, 'product_tag');
+        }
+    }
+
+    wp_die();
+}
+
+
+// function for add products end kamrul
