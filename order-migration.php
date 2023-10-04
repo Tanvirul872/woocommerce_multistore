@@ -601,66 +601,6 @@ add_filter('manage_edit-shop_order_columns', 'adjust_shop_order_column_order');
 
 // function for add products start kamrul
 
-
-// function add_product_to_woocommerce($product_data)
-// {
-
-//     // Create a new product
-//     $product = array(
-//         'post_title'    => $product_data['title'],
-//         'post_content'  => $product_data['description'],
-//         'post_status'   => 'publish',
-//         'post_author'   => 1, // Author ID
-//         'post_type'     => 'product',
-//     );
-
-//     $product_id = wp_insert_post($product);
-
-//     // Set product data
-//     update_post_meta($product_id, '_sku', $product_data['sku']);
-//     update_post_meta($product_id, '_price', $product_data['price']);
-//     update_post_meta($product_id, '_regular_price', $product_data['regular_price']);
-//     update_post_meta($product_id, '_sale_price', $product_data['sale_price']);
-//     update_post_meta($product_id, '_manage_stock', 'yes');
-//     update_post_meta($product_id, '_stock', $product_data['stock']);
-//     update_post_meta($product_id, '_stock_status', 'instock');
-//     update_post_meta($product_id, '_product_attributes', array());
-//     update_post_meta($product_id, '_visibility', 'visible');
-
-//     // Add product images
-//     $image_id = media_handle_upload('image_url', $product_id);
-//     set_post_thumbnail($product_id, $image_id);
-
-//     // Assign product categories and tags
-//     wp_set_post_terms($product_id, $product_data['categories'], 'product_cat');
-//     wp_set_post_terms($product_id, $product_data['tags'], 'product_tag');
-
-//     // Save the product
-//     wp_update_post(array('ID' => $product_id));
-
-//     return $product_id;
-// }
-
-// Example usage:
-// $product_data = array(
-//     'title'          => 'Product Title',
-//     'description'    => 'Product Description',
-//     'sku'            => 'Product SKU',
-//     'price'          => 'Product Price',
-//     'regular_price'  => 'Product Regular Price',
-//     'sale_price'     => 'Product Sale Price',
-//     'stock'          => 'Product Stock Quantity',
-//     'categories'     => array('Category 1', 'Category 2'), // Category names
-//     'tags'           => array('Tag 1', 'Tag 2'), // Tag names
-//     'image_url'      => 'URL or path to product image',
-// );
-
-// $product_id = add_product_to_woocommerce($product_data);
-
-
-
-
-
 add_action('wp_ajax_get_all_products_by_api', 'get_all_products_by_api');
 add_action('wp_ajax_nopriv_get_all_products_by_api', 'get_all_products_by_api');
 
@@ -713,47 +653,49 @@ function get_all_products_by_api()
             $all_products[] = $products;
         }
     }
+    // exit;
 
+    // check if the product already exists 
+    $posts_with_meta = get_posts(array(
+        'post_type' => 'product', // Change 'post' to your desired post type
+        'posts_per_page' => -1, // To retrieve all posts
+        'meta_key' => '_product_from_where_', // Replace with your specific post meta key
+        'meta_compare' => 'EXISTS', // Check if the post meta key exists
+    ));
 
+    $product_exists = [];
+    if ($posts_with_meta) {
+        foreach ($posts_with_meta as $post) {
 
-
-    $table_name = $wpdb->prefix . 'posts';
-    $all_posts = $wpdb->get_results("SELECT * FROM $table_name");
-
-    // print_r($all_posts[count($all_posts)-1]);
-
-    $ck = 1;
-
-    foreach ($all_posts as $post) {
-        $post_name = $post->post_name;
-        foreach ($all_products as $product) {
-            $product_slug = $product->slug;
-
-            if ($post_name == $product_slug) {
-                $ck = 0;
-            }
-
-            // echo '<pre>';
-            // print_r($post_name);
-            // exit;
+            $product_exists[] = get_post_meta($post->ID, '_product_from_where_', true);
         }
+        wp_reset_postdata(); // Reset post data
     }
 
-    // echo '<pre>';
-    // print_r($ck);
-    // exit;
-
-
-    // exit;
-
-
 
     // echo '<pre>';
-    // print_r($all_products);
+    // print_r($product_exists);
+
     // exit;
 
-    if ($ck == 1) {
-        foreach ($all_products as $product_data) {
+
+
+    foreach ($all_products as $product_data) {
+
+        $permalinkParts = parse_url($product_data->permalink);
+
+        $domainName = $permalinkParts['host'];
+        $id = $product_data->id;
+
+        // Concatenate domain name and id
+        $product_from_where = $domainName . '_' . $id;
+
+
+        if ((count($product_exists) == 0) || !in_array($product_from_where, $product_exists)) {
+
+            // print_r('true');
+            // exit;
+
             // create a product by function 
             $product = array(
                 'post_title'    => $product_data->name,
@@ -765,7 +707,10 @@ function get_all_products_by_api()
 
             $product_id = wp_insert_post($product);
 
+
             // Set product data
+            update_post_meta($product_id, '_product_from_where_', $product_from_where);
+
             update_post_meta($product_id, '_sku', $product_data->sku);
             update_post_meta($product_id, '_price', $product_data->price);
             update_post_meta($product_id, '_regular_price', $product_data->regular_price);
@@ -816,10 +761,7 @@ function get_all_products_by_api()
             //  Mark the import as completed
             update_option('product_api_import_completed', true);
         }
-
-        // print_r("Kamrul");
     }
-
 
     wp_die();
 }
