@@ -2,7 +2,7 @@
 /*
 Plugin Name: Order Migration
 Description: Migrate orders from one WooCommerce site to another.
-Version: 1.0.0
+Version: 1.0.1
 Author: Tanvirul Karim
 */
 
