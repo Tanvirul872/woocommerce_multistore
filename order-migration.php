@@ -2,7 +2,7 @@
 /*
 Plugin Name: Order Migration
 Description: Migrate orders from one WooCommerce site to another.
-Version: 1.0
+Version: 1.0.0
 Author: Tanvirul Karim
 */
 
@@ -315,12 +315,12 @@ function get_source_orders($source_site_url)
             // print_r($new_order->id);
             // exit;
 
-           
+
             if ((count($order_exists) == 0) || !in_array($from_where_with_id, $order_exists)) {
 
                 print_r('kamrul');
                 exit;
-    
+
 
                 // add order start 
                 $source_order = $order;
@@ -973,5 +973,19 @@ function get_all_tags_by_api()
     wp_die();
 }
 
+
+
+require 'plugin-update-checker/plugin-update-checker.php';
+$myUpdateChecker = Puc_v4_Factory::buildUpdateChecker(
+    'https://github.com/Tanvirul872/woocommerce_multistore/',
+    __FILE__,
+    'woocommerce_multistore'
+);
+
+//Set the branch that contains the stable release.
+$myUpdateChecker->setBranch('kamrul1');
+
+//Optional: If you're using a private repository, specify the access token like this:
+// $myUpdateChecker->setAuthentication('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');
 
 // function for add products end kamrul
