@@ -148,9 +148,9 @@ function migrate_orders()
     // Fetch orders from the source website (You need to implement this)
     $source_orders = get_source_orders($source_site_url);
     // Loop through orders and insert them into the destination website
-    foreach ($source_orders as $source_order) {
-        insert_order_into_destination($source_order);
-    }
+    // foreach ($source_orders as $source_order) {
+    //     insert_order_into_destination($source_order);
+    // }
 }
 
 
@@ -158,6 +158,8 @@ function migrate_orders()
 function get_source_orders($source_site_url)
 {
 
+    // print_r('hello') ;
+    // exit; 
     $source_orders = array();
 
     // get all the orders together start 
@@ -167,6 +169,10 @@ function get_source_orders($source_site_url)
     global $wpdb;
     $table_name = $wpdb->prefix . 'woo_migrate_api_data';
     $results = $wpdb->get_results("SELECT * FROM $table_name");
+
+
+
+
 
     // Initialize an array to hold the WooCommerce instances and configurations
     $woocommerce_instances = [];
@@ -184,50 +190,15 @@ function get_source_orders($source_site_url)
         ];
     }
 
-
-
-    // You can use this $woocommerce_instances array for further processing
-    // Loop through each WooCommerce instance and fetch orders
-    // foreach ($woocommerce_instances as $instance) {
-    //     $woocommerce = new Client(
-    //         $instance['url'],
-    //         $instance['consumer_key'],
-    //         $instance['consumer_secret'],
-    //         [
-    //             'wp_api' => true,
-    //             'version' => 'wc/v3'
-    //         ]
-    //     );
-
-    //     // $orders_data = $woocommerce->get('orders');
-    //     $page = 1;
-    //     $perPage = 100; // You can adjust this value based on your needs
-
-    //     while (true) {
-    //         $orders_data = $woocommerce->get('orders', [
-    //             'per_page' => $perPage,
-    //             'page' => $page,
-    //         ]);
-
-    //         if (empty($orders_data)) {
-    //             break; // No more orders
-    //         }
-    //         $combinedOrders = array_merge($combinedOrders, $orders_data);
-    //         $page++;
-
-    // }
+    // echo '<pre>';
+    // print_r($woocommerce_instances);
+    // exit;
 
 
 
-    // }
-
-
-    // print_r($combinedOrders) ;
-    // exit ;
-
-
-    // $combinedOrders = []; // Initialize the array to store orders
+    $combinedOrders = []; // Initialize the array to store orders
     $today = new DateTime(); // Get current date
+
     foreach ($woocommerce_instances as $instance) {
         $woocommerce = new Client(
             $instance['url'],
@@ -239,6 +210,7 @@ function get_source_orders($source_site_url)
             ]
         );
 
+
         $page = 1;
         $perPage = 100; // You can adjust this value based on your needs
 
@@ -248,6 +220,8 @@ function get_source_orders($source_site_url)
                 'page' => $page,
             ]);
 
+
+
             if (empty($orders_data)) {
                 break; // No more orders
             }
@@ -255,10 +229,8 @@ function get_source_orders($source_site_url)
             foreach ($orders_data as $order) {
                 $orderDate = new DateTime($order->date_created); // Convert order date to DateTime object
 
-
-
-
-
+                // print_r($order) ;
+                // exit; 
 
                 // Compare order date with today's date
                 if ($orderDate->format('Y-m-d') === $today->format('Y-m-d')) {
@@ -270,71 +242,88 @@ function get_source_orders($source_site_url)
         }
     }
 
-    // print_r($combinedOrders);
-    // exit;
 
 
 
-    // echo '<pre>' ;
-    // print_r(count($combinedOrders)) ;
-    // echo '</pre>' ;
+
+
+
+    // check if the order already exists 
+    $posts_with_meta = get_posts(array(
+        'post_type'      => 'shop_order',
+        'posts_per_page' => -1, // Retrieve all orders
+        'post_status'   => array('processing', 'completed', 'on-hold'),
+        'meta_key' => '_order_from_where_', // Replace with your specific post meta key
+        'meta_compare' => 'EXISTS', // Check if the post meta key exists
+    ));
+
+
+
+    // print_r($posts_with_meta);
+    // exit; 
+
+
+
+    $order_exists = [];
+    if ($posts_with_meta) {
+        foreach ($posts_with_meta as $post) {
+
+            $order_exists[] = get_post_meta($post->ID, '_order_from_where_', true);
+        }
+        wp_reset_postdata(); // Reset post data
+    }
+
+
+
+
+
+    // print_r($order_exists);
+    // exit; 
+
+
+    // $from_where_with_ids = [];
 
     if (is_array($combinedOrders)) {
         foreach ($combinedOrders as $order) {
-            // get all the orders together end 
 
+            // echo '<pre>';
+            // print_r($order);
+            // exit;
 
-            global $wpdb;
-            $table_name = $wpdb->prefix . 'woo_migrte_orders';
+            // global $wpdb;
+            // $table_name = $wpdb->prefix . 'woo_migrte_orders';
 
-
-
-            //  this code is for live link 
-            //  $url =  $order->payment_url ;
-            // $parsed_url = parse_url($url);
-            // $host_parts = explode('.', $parsed_url['host']);
-            // $dynamic_prefix = $host_parts[0];
-
-            //   print_r($unique_domains) ;  
-            //   exit;
 
             //  this code is for localhost 
             $link =  $order->payment_url;
+            $updatelink = parse_url($link);
+            $mainUrl = $updatelink['host'];
+
+            // print_r($mainUrl);
+            // exit;
+
             if (preg_match('/http:\/\/localhost\/(.*?)\/checkout\/order-pay/', $link, $matches)) {
                 $dynamic_prefix = $matches[1];
             }
 
-            // echo '<pre>' ;
-            // print_r($order) ;
-            // echo '</pre>' ;
-
-            // exit;
             $order_num_to_insert = $dynamic_prefix . '_' . $order->id;
 
-
-            // Check if the order_num already exists in the table
-            $order_exists = $wpdb->get_var(
-                $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE order_num = %s", $order_num_to_insert)
-            );
-            // echo '<pre>' ;
-            // print_r($order_exists) ;
-            // echo '</pre>' ;
-
-            if (!$order_exists) {
-                $data = array(
-                    'order_num' => $order_num_to_insert,
-                    'status' => 1,
-                );
-                $wpdb->insert($table_name, $data);
+            $from_where_with_id = $mainUrl . $order_num_to_insert;
 
 
+
+            // print_r($new_order->id);
+            // exit;
+
+           
+            if ((count($order_exists) == 0) || !in_array($from_where_with_id, $order_exists)) {
+
+                print_r('kamrul');
+                exit;
+    
 
                 // add order start 
                 $source_order = $order;
-
-                // print_r($source_order) ;
-                // exit; 
-
 
                 if (class_exists('WooCommerce')) {
                     $order_data = array(
@@ -348,6 +337,15 @@ function get_source_orders($source_site_url)
                     );
 
                     $new_order = wc_create_order($order_data);
+
+
+
+
+
+                    update_post_meta($new_order->id, '_order_from_where_', $from_where_with_id);
+
+
+
                     if (is_a($new_order, 'WC_Order')) {
 
                         foreach ($source_order->line_items as $line_item) {
@@ -409,15 +407,6 @@ function get_source_orders($source_site_url)
                             $payment_gateways = WC()->payment_gateways->payment_gateways();
 
 
-                            // echo '<pre>' ;  
-                            // print_r($source_order->shipping_lines[0]) ; 
-                            // exit ; 
-
-
-
-                            // $new_order->set_payment_method($payment_gateways['stripe']);
-
-
                             $new_order->set_address($billing_address, 'billing');
                             $new_order->set_address($shipping_address, 'shipping');
                             $new_order->set_customer_id($source_order->customer_id);
@@ -436,25 +425,137 @@ function get_source_orders($source_site_url)
                         $shipping->set_total(0); // optional 
                         // $new_order = wc_create_order();
                         $new_order->add_item($shipping);
-
-
-
-
-
-
-                        // $new_order->calculate_totals();
-
-
-
-
-                        // $new_order->save();
                     }
                 }
-                // add order end 
-                // $source_orders[] = $order;
             }
+
+
+
+            // // Check if the order_num already exists in the table
+            // $order_exists = $wpdb->get_var(
+            //     $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE order_num = %s", $order_num_to_insert)
+            // );
+
+
+            // echo '<pre>' ;
+            // print_r($order_exists) ;
+            // echo '</pre>' ;
+
+
+            // if (!$order_exists) {
+            //     $data = array(
+            //         'order_num' => $order_num_to_insert,
+            //         'status' => 1,
+            //     );
+            //     $wpdb->insert($table_name, $data);
+
+
+
+            //     // // add order start 
+            //     // $source_order = $order;
+
+
+
+
+            //     // if (class_exists('WooCommerce')) {
+            //     //     $order_data = array(
+            //     //         'status' => $source_order->status,  // Change to desired status
+            //     //         'customer_id' => $source_order->customer_id, // Replace with appropriate customer ID
+            //     //         'customer_note' => 'customer note',
+            //     //         'parent'        => null,
+            //     //         'created_via'   => null,
+            //     //         'cart_hash'     => null,
+            //     //         'order_id'      => 0,
+            //     //     );
+
+            //     //     $new_order = wc_create_order($order_data);
+            //     //     if (is_a($new_order, 'WC_Order')) {
+
+            //     //         foreach ($source_order->line_items as $line_item) {
+
+            //     //             $args = array(
+            //     //                 'name'         => $line_item->name,
+            //     //                 'tax_class'    => $line_item->tax_class,
+            //     //                 'variation_id' => $line_item->variation_id,
+            //     //                 'variation'    => $line_item->variation,
+            //     //                 'subtotal'     => $line_item->subtotal,
+            //     //                 'total'        => $line_item->total,
+            //     //                 'quantity'     => $line_item->quantity,
+            //     //                 'product_id'   => $line_item->product_id,
+            //     //             );
+
+
+            //     //             $sku = $line_item->sku; //for test purpose 
+            //     //             // $sku = '123' ;
+            //     //             $product_id = wc_get_product_id_by_sku($sku);
+            //     //             $product = wc_get_product($product_id);
+            //     //             $new_order->add_product($product, $line_item->quantity);
+
+
+            //     //             $shipping_address = array(
+            //     //                 'first_name' => $source_order->shipping->first_name,
+            //     //                 'last_name' => $source_order->shipping->last_name,
+            //     //                 'address_1' => $source_order->shipping->address_1,
+            //     //                 'address_2' => $source_order->shipping->address_2,
+            //     //                 'city' => $source_order->shipping->city,
+            //     //                 'state' => $source_order->shipping->state,
+            //     //                 'postcode' => $source_order->shipping->postcode,
+            //     //                 'country' => $source_order->shipping->country,
+            //     //                 'company'    => $source_order->shipping->company,
+            //     //                 'email'      => $source_order->shipping->email,
+            //     //                 'phone'      => $source_order->billing->phone,
+            //     //             );
+
+
+            //     //             $billing_address = array(
+
+            //     //                 'first_name' => $source_order->billing->first_name,
+            //     //                 'last_name' => $source_order->billing->last_name . '(' . $order_num_to_insert . ')',
+            //     //                 'address_1' => $source_order->billing->address_1,
+            //     //                 'address_2' => $source_order->billing->address_2,
+            //     //                 'city' => $source_order->billing->city,
+            //     //                 'state' => $source_order->billing->state,
+            //     //                 'postcode' => $source_order->billing->postcode,
+            //     //                 'country' => $source_order->billing->country,
+            //     //                 'company'    => $source_order->billing->company,
+            //     //                 'email'      => $source_order->billing->email,
+            //     //                 'phone'      => $source_order->billing->phone,
+            //     //                 'payment_method'  => $source_order->payment_method_title,
+            //     //             );
+
+            //     //             // Display payment method in billing address section
+            //     //             $payment_method = $source_order->payment_method_title;
+            //     //             $billing_address['payment_method'] = 'Payment Method: ' . esc_html($payment_method);
+
+            //     //             $payment_gateways = WC()->payment_gateways->payment_gateways();
+
+
+            //     //             $new_order->set_address($billing_address, 'billing');
+            //     //             $new_order->set_address($shipping_address, 'shipping');
+            //     //             $new_order->set_customer_id($source_order->customer_id);
+            //     //             $new_order->set_billing_email($billing_address['email']);
+            //     //             $new_order->set_billing_phone($billing_address['phone']);
+            //     //         }
+
+
+            //     //         // add to order
+
+
+
+            //     //         $shipping = new WC_Order_Item_Shipping();
+            //     //         $shipping->set_method_title('Free shipping');
+            //     //         $shipping->set_method_id('free_shipping:1'); // set an existing Shipping method ID
+            //     //         $shipping->set_total(0); // optional 
+            //     //         // $new_order = wc_create_order();
+            //     //         $new_order->add_item($shipping);
+            //     //     }
+            //     // }
+            // }
         }
     }
+
+    // print_r($source_order) ;
+    // exit; 
     return $source_orders;
 }
 
@@ -693,8 +794,7 @@ function get_all_products_by_api()
 
         if ((count($product_exists) == 0) || !in_array($product_from_where, $product_exists)) {
 
-            // print_r('true');
-            // exit;
+
 
             // create a product by function 
             $product = array(
